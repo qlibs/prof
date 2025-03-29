@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2024 Kris Jusiak <kris@jusiak.net>
+# Copyright (c) 2024-2025 Kris Jusiak <kris@jusiak.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,35 +20,38 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM ubuntu:22.04
-ARG CLANG=18
-ARG GCC=13
+# ```
+# docker build -t perf .
+# ```
+
+# ```
+# docker run \
+#   --user $(id -u):$(id -g) \
+#   --privileged \
+#   --network=host \
+#   -e DISPLAY=${DISPLAY} \
+#   -v ${PWD}:${PWD} \
+#   -w ${PWD} \
+#   perf
+# ```
+
+FROM ubuntu:24.04
+ARG CLANG=20
+ARG GCC=14
 
 RUN apt-get update && apt-get install -y \
   gnupg software-properties-common lsb-release ca-certificates \
-  kmod linux-headers-6.2.0-39-generic linux-tools-generic linux-tools-*-generic \
-  wget bzip2 pkg-config hwloc dbus-x11 \
-  python3-pip \
-  git \
-  cmake \
-  msr-tools \
-  llvm-dev \
-  libpfm4 libpapi-dev papi-tools \
-  libgoogle-perftools-dev google-perftools graphviz gnuplot \
-  valgrind kcachegrind \
-  coz-profiler \
-  pahole \
-  likwid \
-  hotspot \
-  hyperfine
+  python3-pip python3-venv cmake \
+  wget bzip2 vim pkg-config dbus-x11 git gh \
+  kmod linux-headers-generic linux-tools-generic linux-tools-*-generic util-linux hwloc msr-tools \
+  llvm-dev libpfm4 libpapi-dev papi-tools libipt-dev \
+  libgoogle-perftools-dev google-perftools valgrind kcachegrind coz-profiler pahole likwid hotspot hyperfine \
+  graphviz gnuplot imagemagick libsixel-bin
 
-RUN pip3 install \
-  pyperf \
-  osaca \
-  jupyter \
-  numpy \
-  pandas \
-  matplotlib
+RUN python3 -m venv /venv
+RUN /venv/bin/pip install \
+  pyperf osaca \
+  jupyter numpy pandas matplotlib ansi2html
 
 RUN wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | \
     gpg --dearmor -o /usr/share/keyrings/intel-oneapi-archive-keyring.gpg
@@ -57,8 +60,10 @@ RUN echo "deb [signed-by=/usr/share/keyrings/intel-oneapi-archive-keyring.gpg] h
 RUN apt-get update && apt-get install -y libnss3 intel-oneapi-vtune
 
 RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh $CLANG && rm llvm.sh
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update && apt install g++-$GCC -y
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update && apt install -y g++-$GCC
 
-RUN wget -qP /usr/include https://raw.githubusercontent.com/qlibs/prof/main/prof
+RUN wget -O /usr/include/ut https://raw.githubusercontent.com/qlibs/ut/refs/heads/main/ut
+RUN wget -O /usr/include/prof https://raw.githubusercontent.com/qlibs/prof/refs/heads/main/prof
 
+ENV PATH="/venv/bin:$PATH"
 ENV DISPLAY=:0

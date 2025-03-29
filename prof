@@ -38,7 +38,7 @@
 
 - C++20 ([gcc-11+, clang-12+](https://en.cppreference.com/w/cpp/compiler_support))
 
-> #### Optional ([docker](https://github.com/qlibs/prof/blob/main/Dockerfile) setup - see [FAQ](#FAQ))
+> #### Optional ([docker](https://github.com/qlibs/prof/blob/main/.github/workflows/Dockerfile) setup - see [FAQ](#FAQ))
 
 - callgrind (simulation) - https://valgrind.org/docs/manual/cl-manual.html
 - llvm-xray (instrumention) - https://llvm.org/docs/XRay.html
@@ -194,7 +194,7 @@ class intel_vtune {
 
 ### FAQ
 
-- Setup [docker](https://www.docker.com) ([Dockerfile](https://github.com/qlibs/prof/blob/main/Dockerfile))
+- Setup [docker](https://www.docker.com) ([Dockerfile](https://github.com/qlibs/prof/blob/main/.github/workflows/Dockerfile))
 
   ```sh
   docker build -t prof .
