@@ -41,6 +41,7 @@
 > #### Optional ([docker](https://github.com/qlibs/prof/blob/main/.github/workflows/Dockerfile) setup - see [FAQ](#FAQ))
 
 - callgrind (simulation) - https://valgrind.org/docs/manual/cl-manual.html
+- llvm-xray (instrumention) - https://llvm.org/docs/XRay.html
 - linux-perf (sampling) - https://perf.wiki.kernel.org
 - gperftools (sampling) - https://github.com/gperftools/gperftools
 - intel-vtune (sampling) - https://www.intel.com/content/www/us/en/docs/vtune-profiler
@@ -51,6 +52,7 @@
 int main() {
   static_assert(prof::profiler<prof::none>);
   static_assert(prof::profiler<prof::callgrind>);
+  static_assert(prof::profiler<prof::xray>);
   static_assert(prof::profiler<prof::linux_perf>);
   static_assert(prof::profiler<prof::gperf>);
   static_assert(prof::profiler<prof::intel_vtune>);
@@ -76,6 +78,12 @@ valgrind --tool=callgrind \
          --collect-jumps=yes \
          ./callgrind
 kcachegrind callgrind.*
+```
+
+```sh
+# llvm-xray
+clang++ -O3 -fxray-instrument -fxray-instruction-threshold=1 xray.cpp -o xray
+llvm-xray account xray-log.* --top=10 --sort=sum --sortorder=dsc -instr_map=./xray
 ```
 
 ```sh
@@ -126,6 +134,21 @@ class callgrind {
   constexpr ~callgrind() noexcept;
   constexpr auto start();
   constexpr auto stop();
+  constexpr auto flush();
+};
+#endif
+
+#if __has_include(<xray/xray_interface.h>) and \
+    __has_include(<xray/xray_log_interface.h>)
+class xray {
+ public:
+  constexpr explicit xray(const char* mode = "xray-fdr",
+                          const char* cfg = "xray_logfile_base=xray-log.%");
+  constexpr ~xray() noexcept;
+  constexpr xray(xray&&) = default;
+  constexpr xray(const xray&) = delete;
+  [[clang::xray_never_instrument]] constexpr auto start();
+  [[clang::xray_never_instrument]] constexpr auto stop();
   constexpr auto flush();
 };
 #endif
@@ -199,6 +222,31 @@ class intel_vtune {
   echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
   echo 1000 | sudo tee /proc/sys/kernel/perf_event_max_sample_rate
   ```
+
+- Instrumentation with [llvm-xray](https://llvm.org/docs/XRay.html)
+
+  ```cpp
+  [[clang::xray_always_instrument]]
+  void always_profile();
+
+  [[clang::xray_always_instrument, clang::xray_log_args(1)]]
+  void always_profile_and_log_i(int i);
+
+  [[clang::xray_never_instrument]]
+  void never_profile();
+  ```
+
+  ```cpp
+  # profiling threshold
+  -fxray-instruction-threshold=1 # default 200 instructions
+  ```
+
+  ```cpp
+  # instrumentation info
+  llvm-xray extract ./a.out --symbolize
+  ```
+
+  > https://godbolt.org/z/WhsEYf9cc
 
 - Conditional profiling with [callgrind](https://valgrind.org/docs/manual/cl-manual.html)
 
@@ -301,6 +349,48 @@ class callgrind {
 
  private:
   const char* profile_{};
+};
+} // namespace prof
+#endif
+
+#if __has_include(<xray/xray_interface.h>) and \
+    __has_include(<xray/xray_log_interface.h>)
+#include <xray/xray_interface.h>
+#include <xray/xray_log_interface.h>
+namespace prof::inline v1_0_0 {
+/**
+ * `-fxray-instrument -fxray-instruction-threshold=1`
+ * ./a.out`
+ * `llvm-xray account xray-log.* --top=10 --sort=sum --sortorder=dsc --instr_map=./a.out`
+ * https://llvm.org/docs/XRay.html
+ */
+class xray {
+ public:
+  constexpr explicit xray(const char* mode = "xray-fdr",
+                          const char* cfg = "xray_logfile_base=xray-log.%") {
+    __xray_log_select_mode(mode);
+    __xray_log_init_mode(mode, cfg);
+  }
+
+  constexpr xray(xray&&) = default;
+  constexpr xray(const xray&) = delete;
+
+  [[clang::xray_never_instrument]] /*constexpr*/ auto start() {
+    return __xray_patch();
+  }
+
+  [[clang::xray_never_instrument]] /*constexpr*/ auto stop() {
+    return __xray_unpatch();
+  }
+
+  /*constexpr*/ auto flush() {
+    __xray_log_finalize();
+    __xray_log_flushLog();
+  }
+
+  /*constexpr*/ ~xray() noexcept {
+    flush();
+  }
 };
 } // namespace prof
 #endif
@@ -429,6 +519,11 @@ static_assert(([] {
 
   #if __has_include(<valgrind/callgrind.h>)
   static_assert(prof::profiler<prof::callgrind>);
+  #endif
+
+  #if __has_include(<xray/xray_interface.h>) and \
+      __has_include(<xray/xray_log_interface.h>)
+  static_assert(prof::profiler<prof::xray>);
   #endif
 
   #if __has_include(<fcntl.h>) and __has_include(<unistd.h>) and __has_include(<cassert>)
