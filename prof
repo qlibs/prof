@@ -268,24 +268,6 @@ class intel_vtune {
   kcachegrind callgrind.* # opens all profiles combined
   ```
 
-- How to integrate with [CMake.FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)?
-
-    ```
-    include(FetchContent)
-
-    FetchContent_Declare(
-      qlibs.prof
-      GIT_REPOSITORY https://github.com/qlibs/prof
-      GIT_TAG v1.0.0
-    )
-
-    FetchContent_MakeAvailable(qlibs.prof)
-    ```
-
-    ```
-    target_link_libraries(${PROJECT_NAME} PUBLIC qlibs.prof);
-    ```
-
 - Acknowledgments
 
   > https://valgrind.org/docs/manual/cl-manual.html
