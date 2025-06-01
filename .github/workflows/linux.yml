@@ -1,0 +1,27 @@
+name: linux
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: image
+      run: docker build -f .github/workflows/Dockerfile -t prof .
+
+    - name: build
+      run: |
+        cat <<EOF > prof.cpp
+        #include <prof>
+        int main() { }
+        EOF
+        docker run --rm --privileged -v ${PWD}:${PWD} -w ${PWD} prof sh -c "clang++-20 -std=c++20 -I. prof.cpp"
