@@ -58,6 +58,8 @@
 ### Overview
 
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::perf profiler{"/dev/shm/perf"};
   >   profiler.start();
@@ -72,6 +74,8 @@
   > ```
   >
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::vtune profiler{"domain", "task"};
   >   profiler.start();
@@ -87,6 +91,8 @@
   > ```
   >
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::uprof profiler{};
   >   profiler.start();
@@ -101,6 +107,8 @@
   > ```
   >
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::gperf profiler{"gperf"};
   >   profiler.start();
@@ -117,6 +125,8 @@
   > ```
   >
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::xray profiler{"xray-fdr"};
   >   profiler.start();
@@ -133,6 +143,8 @@
   > ```
   >
   > ```cpp
+  > import prof;
+  >
   > int main() {
   >   prof::callgrind callgrind{"profile"};
   >   profiler.start();
